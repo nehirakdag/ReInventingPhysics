@@ -5,7 +5,7 @@ using UnityEngine;
 public class VerletPoint : MonoBehaviour {
 
 	public Vector3 location;
-	public float radius = 0.05f;
+	public float radius = 0.035f;
 
 	public bool isSticky = false;
 
