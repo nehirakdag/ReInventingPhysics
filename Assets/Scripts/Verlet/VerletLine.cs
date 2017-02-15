@@ -33,7 +33,7 @@ public class VerletLine : MonoBehaviour {
 		line.startColor = Color.cyan;
 		line.endColor = Color.green;
 
-		Vector3 lineVector = endPoint.location - startPoint.location;
+		Vector3 lineVector = endPoint.transform.position - startPoint.transform.position;
 
 		for (int i = 0; i < numParticles; i++) {
 			GameObject newParticle = Instantiate (particlePrefab) as GameObject;
@@ -41,8 +41,8 @@ public class VerletLine : MonoBehaviour {
 			float displacement = (float)i / (float)numParticles;
 			VerletParticle particle = newParticle.GetComponent<VerletParticle> ();
 
-			particle.transform.position = startPoint.location + displacement * lineVector;
-			particle.oldPosition = startPoint.location + displacement * lineVector;
+			particle.transform.position = startPoint.transform.position + displacement * lineVector;
+			particle.oldPosition = startPoint.transform.position + displacement * lineVector;
 			particle.transform.parent = this.transform;
 			particle.gameObject.name = "VelvetParticle " + i;
 			particles.Add (particle);
@@ -153,10 +153,10 @@ public class VerletLine : MonoBehaviour {
 	void Update() {
 		// Update start+end positions first
 		VerletParticle StartParticle = particles[0];
-		StartParticle.transform.position = StartParticle.oldPosition = startPoint.location;
+		StartParticle.transform.position = StartParticle.oldPosition = startPoint.transform.position;
 
 		VerletParticle EndParticle = particles[numSegments];
-		EndParticle.transform.position = EndParticle.oldPosition = endPoint.location;
+		EndParticle.transform.position = EndParticle.oldPosition = endPoint.transform.position;
 
 		Vector3 Gravity = Physics.gravity;
 		float UseSubstep = Mathf.Max(SubstepTime, 0.005f);

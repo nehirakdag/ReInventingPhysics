@@ -153,12 +153,17 @@ public class Goat : Shootable {
 			GameObject vertex = Instantiate (verletPointPrefab, this.transform);
 
 			VerletPoint verletPoint = vertex.GetComponent<VerletPoint> ();
-			verletPoint.location = location * scaleSize + this.transform.position;
+			verletPoint.transform.position = location * scaleSize + this.transform.position;
+			verletPoint.oldPosition = location * scaleSize + this.transform.position;
 			verletPoint.gameObject.name = "Verlet Point " + index;
+
+			if (index == 11 || index == 12 || index == 13 || index == 14) {
+				verletPoint.isSticky = true;
+			}
 
 			verletPoints [index] = verletPoint;
 		} else {
-			verletPoints [index].location = location * scaleSize + this.transform.position;
+			verletPoints [index].transform.position = location * scaleSize + this.transform.position;
 		}
 
 	}
