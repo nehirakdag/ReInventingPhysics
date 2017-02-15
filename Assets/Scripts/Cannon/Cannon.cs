@@ -9,6 +9,8 @@ public class Cannon : MonoBehaviour {
 
 	public Transform ammosLaunched;
 
+	public bool isActive = false;
+
 	public List<Shootable> shotsFired = new List<Shootable>();
 
 	// Use this for initialization
@@ -18,7 +20,7 @@ public class Cannon : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (Input.GetKeyDown (KeyCode.Space)) {
+		if (Input.GetKeyDown (KeyCode.Space) && isActive) {
 			if (ammoPrefab != null) {
 				ShootCannonBall ();
 			}

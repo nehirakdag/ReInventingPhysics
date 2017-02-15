@@ -17,7 +17,8 @@ public abstract class Shootable : MonoBehaviour {
 
 	public Vector2 currentVelocity;
 	public bool moving = true;
-	private bool movingAtY = true;
+	protected bool movingAtY = true;
+	public bool initialized = false;
 
 	// Use this for initialization
 	public virtual void Start () {

@@ -43,6 +43,7 @@ public class PhysicsHandler : MonoBehaviour {
 			}
 
 		}
+		//Debug.Log ("SupportingVertexIndex = " + supportingVertexIndex);
 		return vertices[supportingVertexIndex];
 	}
 
@@ -64,15 +65,7 @@ public class PhysicsHandler : MonoBehaviour {
 		return minkowskiDifference;
 	}
 
-	public Simplex DetectMeshSpriteCollision(Mesh mesh, SpriteRenderer spriteRenderer) {
-		Vector3[] verticesA = mesh.vertices;
-		Vector2[] verticesB = new Vector2[spriteRenderer.sprite.vertices.Length];
-
-		for (int i = 0; i < verticesB.Length; i++) {
-			Vector2 spriteWorldPosition = spriteRenderer.transform.TransformPoint(spriteRenderer.sprite.vertices[i]);
-			verticesB [i] = new Vector2 (spriteWorldPosition.x, spriteWorldPosition.y);
-		}
-
+	public Simplex DetectCollision(Vector3[] verticesA, Vector2[] verticesB) {
 		Vector2 checkDirection = new Vector2 (1.0f, -1.0f);
 
 		Simplex simplex = new Simplex ();
@@ -95,17 +88,9 @@ public class PhysicsHandler : MonoBehaviour {
 		}
 	}
 
-	public Simplex HandleCollision(Mesh mesh, SpriteRenderer spriteRenderer, Simplex collisionSimplex) {
-		Vector3[] verticesA = mesh.vertices;
-		Vector2[] verticesB = new Vector2[spriteRenderer.sprite.vertices.Length];
-
-		for (int i = 0; i < verticesB.Length; i++) {
-			Vector2 spriteWorldPosition = spriteRenderer.transform.TransformPoint(spriteRenderer.sprite.vertices[i]);
-			verticesB [i] = new Vector2 (spriteWorldPosition.x, spriteWorldPosition.y);
-		}
-
+	public Simplex HandleCollision(Vector3[] verticesA, Vector2[] verticesB, Simplex collisionSimplex) {
 		float crossProduct = (collisionSimplex.simplex2D [1].x - collisionSimplex.simplex2D [0].x) * (collisionSimplex.simplex2D [2].y - collisionSimplex.simplex2D [1].y) -
-		                     (collisionSimplex.simplex2D [1].y - collisionSimplex.simplex2D [0].y) * (collisionSimplex.simplex2D [2].x - collisionSimplex.simplex2D [1].x);
+			(collisionSimplex.simplex2D [1].y - collisionSimplex.simplex2D [0].y) * (collisionSimplex.simplex2D [2].x - collisionSimplex.simplex2D [1].x);
 
 		collisionSimplex.winding = (crossProduct > 0) ? 1 : -1;
 
@@ -159,7 +144,16 @@ public class PhysicsHandler : MonoBehaviour {
 		return B * (Vector2.Dot (A, C)) - A * (Vector2.Dot (B, C));
 	}
 
-	/*public bool DetectMeshSpriteCollisionWithInfo(Mesh mesh, SpriteRenderer spriteRenderer) {
+	private Vector2 GetClosestPointToOriginOfLine(Vector2 A, Vector2 B) {
+		Vector2 AB = B - A;
+		Vector2 A0 = Vector2.zero - A;
+
+		Vector2 closestPoint = AB * ((Vector2.Dot (AB, A0)) / (Vector2.Dot (AB, AB))) + A;
+		return closestPoint;
+	}
+
+	/*
+	public Simplex DetectMeshSpriteCollision(Mesh mesh, SpriteRenderer spriteRenderer) {
 		Vector3[] verticesA = mesh.vertices;
 		Vector2[] verticesB = new Vector2[spriteRenderer.sprite.vertices.Length];
 
@@ -175,46 +169,52 @@ public class PhysicsHandler : MonoBehaviour {
 		simplex.simplex2D.Add(SupportFunction(verticesA, verticesB, checkDirection));
 
 		checkDirection *= -1.0f;
-		simplex.simplex2D.Add(SupportFunction(verticesA, verticesB, checkDirection));
 
-		checkDirection = GetClosestPointToOriginOfLine (simplex.simplex2D [0], simplex.simplex2D [1]);
 		while (true) {
-			checkDirection *= -1.0f;
+			simplex.simplex2D.Add(SupportFunction(verticesA, verticesB, checkDirection));
 
-			if (checkDirection == Vector2.zero) {
-				return false;
-			}
-
-			Vector2 newMinkowski = SupportFunction(verticesA, verticesB, checkDirection);
-			Debug.Log ("Newminkowski = " + newMinkowski);
-
-			float dNew = Vector2.Dot (newMinkowski, checkDirection);
-			float dOld = Vector2.Dot (simplex.simplex2D[0], checkDirection);
-
-			if (Mathf.Abs (dNew - dOld) < collisionTolerence) {
-				simplex.leastPenetratingDistance = checkDirection.magnitude;
-				return true;
-			}
-
-			Vector2 p1 = GetClosestPointToOriginOfLine (simplex.simplex2D [0], newMinkowski);
-			Vector2 p2 = GetClosestPointToOriginOfLine (newMinkowski, simplex.simplex2D [1]);
-
-			if (p1.magnitude < p2.magnitude) {
-				simplex.simplex2D [1] = newMinkowski;
-				checkDirection = p1;
+			if (Vector2.Dot (simplex.simplex2D [simplex.simplex2D.Count - 1], checkDirection) <= 0.0f) {
+				//return false;
+				return null;
 			} else {
-				simplex.simplex2D [0] = newMinkowski;
-				checkDirection = p2;
+				if (simplex.ContainsOrigin2D (ref checkDirection)) {
+					return simplex;
+				}
 			}
 		}
-	}*/
-
-	private Vector2 GetClosestPointToOriginOfLine(Vector2 A, Vector2 B) {
-		Vector2 AB = B - A;
-		Vector2 A0 = Vector2.zero - A;
-
-		Vector2 closestPoint = AB * ((Vector2.Dot (AB, A0)) / (Vector2.Dot (AB, AB))) + A;
-		return closestPoint;
 	}
+
+	public Simplex HandleMeshSpriteCollision(Mesh mesh, SpriteRenderer spriteRenderer, Simplex collisionSimplex) {
+		Vector3[] verticesA = mesh.vertices;
+		Vector2[] verticesB = new Vector2[spriteRenderer.sprite.vertices.Length];
+
+		for (int i = 0; i < verticesB.Length; i++) {
+			Vector2 spriteWorldPosition = spriteRenderer.transform.TransformPoint(spriteRenderer.sprite.vertices[i]);
+			verticesB [i] = new Vector2 (spriteWorldPosition.x, spriteWorldPosition.y);
+		}
+
+		float crossProduct = (collisionSimplex.simplex2D [1].x - collisionSimplex.simplex2D [0].x) * (collisionSimplex.simplex2D [2].y - collisionSimplex.simplex2D [1].y) -
+		                     (collisionSimplex.simplex2D [1].y - collisionSimplex.simplex2D [0].y) * (collisionSimplex.simplex2D [2].x - collisionSimplex.simplex2D [1].x);
+
+		collisionSimplex.winding = (crossProduct > 0) ? 1 : -1;
+
+		while (true) {
+			//Vector2 closestEdge = FindClosestEdgeAtSimplex (collisionSimplex);
+			PolygonEdge closestEdge = FindClosestEdgeAtSimplex (collisionSimplex);
+			Vector2 p = SupportFunction (verticesA, verticesB, closestEdge.normal);
+
+			float distanceOfPAlongEdgeNormal = Vector2.Dot (p, closestEdge.normal);
+
+			//if (Mathf.Abs(distanceOfPAlongEdgeNormal - closestEdge.distance) < collisionTolerence) {
+			if (distanceOfPAlongEdgeNormal - closestEdge.distance < collisionTolerence) {
+				collisionSimplex.collisionNormal = closestEdge.normal;
+				collisionSimplex.penetratingDistance = distanceOfPAlongEdgeNormal;
+				return collisionSimplex;
+			} else {
+				collisionSimplex.simplex2D.Insert (closestEdge.index, p);
+			}
+		}
+	}
+	*/
 
 }

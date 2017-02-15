@@ -44,16 +44,60 @@ public class GameManager : MonoBehaviour {
 		}
 
 		foreach (Shootable shot in leftCannon.shotsFired) {
+			Vector3[] verticesA = mountain.GetComponent<MeshFilter> ().mesh.vertices;
+			Vector2[] verticesB = new Vector2[shot.GetComponent<SpriteRenderer> ().sprite.vertices.Length];
+
+			for (int i = 0; i < verticesB.Length; i++) {
+				Vector2 spriteWorldPosition = shot.GetComponent<SpriteRenderer> ().transform.TransformPoint(shot.GetComponent<SpriteRenderer> ().sprite.vertices[i]);
+				verticesB [i] = new Vector2 (spriteWorldPosition.x, spriteWorldPosition.y);
+			}
+
 			if (mountain.GetComponent<MeshFilter> ().mesh.bounds.Intersects (shot.GetComponent<SpriteRenderer> ().bounds)) {
-				Simplex collisionSimplex = physics.DetectMeshSpriteCollision (mountain.GetComponent<MeshFilter> ().mesh, shot.GetComponent<SpriteRenderer> ());
+				Simplex collisionSimplex = physics.DetectCollision (verticesA, verticesB);
 
 				if (collisionSimplex != null) {
-					collisionSimplex = physics.HandleCollision (mountain.GetComponent<MeshFilter> ().mesh, shot.GetComponent<SpriteRenderer> (), collisionSimplex);
+					collisionSimplex = physics.HandleCollision (verticesA, verticesB, collisionSimplex);
 
 					shot.transform.Translate(new Vector3(-1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.x, -1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.y, 0.0f));
 					shot.currentVelocity += (shot.bounciness * shot.currentVelocity.magnitude * collisionSimplex.collisionNormal.normalized);
 
 				}
+			}
+		}
+
+		foreach (Shootable shot in rightCannon.shotsFired) {
+			Vector3[] verticesA = mountain.GetComponent<MeshFilter> ().mesh.vertices;
+			Vector2[] verticesB = new Vector2[shot.GetComponent<Goat>().vertices.Length];
+
+			bool intersection = false;
+			for (int i = 0; i < shot.GetComponent<Goat>().vertices.Length; i++) {
+				verticesB [i] = new Vector2 (shot.GetComponent<Goat>().vertices[i].x, shot.GetComponent<Goat>().vertices[i].y);
+
+				if (shot.GetComponent<Goat> ().boundingBox.Contains (verticesB [i])) {
+					intersection = true;
+				}
+			}
+
+			if(intersection) {
+				Simplex collisionSimplex = physics.DetectCollision (verticesA, verticesB);
+
+				if (collisionSimplex != null) {
+					collisionSimplex = physics.HandleCollision (verticesA, verticesB, collisionSimplex);
+
+					shot.transform.Translate(new Vector3(-1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.x, -1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.y, 0.0f));
+					shot.currentVelocity += (shot.bounciness * shot.currentVelocity.magnitude * collisionSimplex.collisionNormal.normalized);
+
+				}
+			}
+		}
+
+		if (Input.GetKeyDown (KeyCode.Tab)) {
+			if (leftCannon.isActive) {
+				leftCannon.isActive = false;
+				rightCannon.isActive = true;
+			} else {
+				leftCannon.isActive = true;
+				rightCannon.isActive = false;
 			}
 		}
 
