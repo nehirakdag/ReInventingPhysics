@@ -35,4 +35,9 @@ public class VerletLink : MonoBehaviour {
 		pointA.transform.position += errorFactor * 0.5f * delta;
 		pointB.transform.position -= errorFactor * 0.5f * delta;
 	}
+
+	public VerletPoint GiveNeighbor(VerletPoint point) {
+		VerletPoint neighbor = (point == pointA) ? pointB : pointA;
+		return neighbor;
+	}
 }

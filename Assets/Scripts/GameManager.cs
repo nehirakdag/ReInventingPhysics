@@ -65,7 +65,7 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 
-		foreach (Shootable shot in rightCannon.shotsFired) {
+		/*foreach (Shootable shot in rightCannon.shotsFired) {
 			Vector3[] verticesA = mountain.GetComponent<MeshFilter> ().mesh.vertices;
 			Vector2[] verticesB = new Vector2[shot.GetComponent<Goat>().vertices.Length];
 
@@ -89,7 +89,7 @@ public class GameManager : MonoBehaviour {
 
 				}
 			}
-		}
+		}*/
 
 		if (Input.GetKeyDown (KeyCode.Tab)) {
 			if (leftCannon.isActive) {
@@ -111,6 +111,18 @@ public class GameManager : MonoBehaviour {
 				shot.notMovingSince >= destroyStationarySeconds) {
 				cannon.shotsFired.Remove (shot);
 				Destroy (shot.gameObject);
+			}
+
+			Goat goat = shot.gameObject.GetComponent<Goat> ();
+			if (goat != null) {
+				for(int k = 0; k < goat.vertices.Length; k++) {
+					if ((goat.verletPoints [k].pinned && goat.verletPoints [k].oldPosition.y <= -5.1f) ||
+						goat.verletPoints [k].transform.position.x < minBounds.x || goat.verletPoints [k].transform.position.x > maxBounds.x ||
+						goat.verletPoints [k].transform.position.y < minBounds.y || goat.verletPoints [k].transform.position.y > maxBounds.y) {
+						cannon.shotsFired.Remove (shot);
+						Destroy (shot.gameObject);
+					}
+				}
 			}
 		}
 	}

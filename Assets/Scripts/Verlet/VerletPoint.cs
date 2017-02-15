@@ -28,7 +28,7 @@ public class VerletPoint : MonoBehaviour {
 		//transform.position = location;
 	}
 
-	void UpdatePhysics(Vector3 forceToApply, float deltaTime) {
+	public void UpdatePhysics(Vector3 forceToApply, float deltaTime) {
 		ApplyForce (forceToApply);
 
 		Vector3 velocity = transform.position - oldPosition;
@@ -52,10 +52,14 @@ public class VerletPoint : MonoBehaviour {
 		}
 	}
 
-	void SolveConstraints() {
+	public void SolveConstraints() {
 		foreach (VerletLink link in links) {
 			link.SolveLinkConstraint ();
 		}
+
+		//if (transform.position.y <= -5.0f) {
+		//	PinTo (transform.position);
+		//}
 
 		if (pinned) {
 			transform.position = pin;

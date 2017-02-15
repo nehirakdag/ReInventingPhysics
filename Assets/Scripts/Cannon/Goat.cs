@@ -14,16 +14,22 @@ public class Goat : Shootable {
 	public List<VerletLink> verletLinks = new List<VerletLink>();
 
 	public Transform points;
-	public Transform lines;
+	public Transform links;
 
 	public Bounds boundingBox;
 
 	public float scaleSize = 0.1f;
 
+	private const int numIterations = 12;
+	private float TimeRemainder = 0f;
+	private float SubstepTime = 0.02f;
+
+	private bool pinned = false;
+
 	// Use this for initialization
 	void Start () {
-		currentVelocity = new Vector2(speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
-		transform.Rotate (new Vector3(0.0f, 0.0f, -1 * elevationAngle));
+		currentVelocity = new Vector2(-1.0f * speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
+		transform.Rotate (new Vector3(0.0f, 0.0f, -1.0f * elevationAngle));
 		boundingBox = new Bounds ();
 		boundingBox.center = new Vector3 (-0.01f, 0.18f);
 		boundingBox.extents = new Vector3 (0.4f, 0.3f);
@@ -31,36 +37,42 @@ public class Goat : Shootable {
 
 		vertices = new Vector3[numVertices];
 		verletPoints = new VerletPoint[numVertices];
+
+		SetGoatShapeVertices ();
+		SetGoatVerletPoints ();
+		//AddConnectionLines ();
+		AddVerletLinks();
+
+		for (int i = 0; i < 8; i++) {
+			verletPoints [i].ApplyForce (currentVelocity / Time.deltaTime);
+		}
 	}
 
 	// Update is called once per frame
 	void Update () {
-		SetGoatShapeVertices ();
-		SetGoatVerletPoints ();
-		AddConnectionLines ();
+		float UseSubstep = Mathf.Max(SubstepTime, 0.005f);
 
-		Vector2 newVelocity = currentVelocity;
-
-		if (movingAtY) {
-			Vector2 drag = newVelocity.normalized * -0.5f * Movement.AIR_DENSITY * Movement.CrossSectionalArea (radius) * newVelocity.magnitude * newVelocity.magnitude;
-			newVelocity += (drag + Movement.GRAVITY_VECTOR + windForce) * Time.deltaTime;
-
-			if (transform.position.y <= -3.5f) {
-				movingAtY = false;
+		TimeRemainder += Time.deltaTime;
+		//while (TimeRemainder > UseSubstep) {
+		if (!pinned) {
+			for (int i = 0; i < verletPoints.Length; i++) {
+				Vector2 drag = (verletPoints [i].transform.position - verletPoints [i].oldPosition).normalized * -0.5f * Movement.AIR_DENSITY * Movement.CrossSectionalArea (radius) * (verletPoints [i].transform.position - verletPoints [i].oldPosition).magnitude * (verletPoints [i].transform.position - verletPoints [i].oldPosition).magnitude;
+				Vector2 forceApplied = (drag + Movement.GRAVITY_VECTOR + windForce);
+				verletPoints [i].UpdatePhysics (forceApplied, Time.deltaTime);
 			}
-		} else {
-			newVelocity.x = 0;
-			newVelocity.y = 0;
-			moving = false;
 		}
 
-		transform.Translate (new Vector3(newVelocity.x * Time.deltaTime, newVelocity.y * Time.deltaTime, 0.0f));
-		currentVelocity = newVelocity;
+		for (int i = 0; i < numIterations; i++) {
+			for (int j = 0; j < verletPoints.Length; j++) {
+				verletPoints [j].SolveConstraints ();
 
-		if (!moving) {
-			notMovingSince += Time.deltaTime;
+				if (verletPoints [j].pinned) {
+					pinned = true;
+				}
+			}
 		}
-
+		TimeRemainder -= UseSubstep;
+		//}
 		//ShowBoundingBox ();
 	}
 
@@ -155,7 +167,7 @@ public class Goat : Shootable {
 
 	void AddVerletPoint(Vector3 location, int index) {
 		if (verletPoints [index] == null) {
-			GameObject vertex = Instantiate (verletPointPrefab, this.transform);
+			GameObject vertex = Instantiate (verletPointPrefab, points);
 
 			VerletPoint verletPoint = vertex.GetComponent<VerletPoint> ();
 			verletPoint.transform.position = location * scaleSize + this.transform.position;
@@ -254,18 +266,52 @@ public class Goat : Shootable {
 	}
 
 	void AddVerletLink(VerletPoint start, VerletPoint end, bool draw) {
-		GameObject line = Instantiate (verletLinkPrefab, lines);
+		bool newLink = true;
 
-		VerletLink verletLink = line.GetComponent<VerletLink> ();
-		verletLink.pointA = start;
-		verletLink.pointB = end;
-		verletLink.initialDistance = end.transform.position - start.transform.position;
-		verletLink.drawThisLink = draw;
+		foreach(VerletLink link in start.links) {
+			if ((link.pointA == start && link.pointB == end) || (link.pointA == end && link.pointB == start)) {
+				newLink = false;
+			}
+		}
 
-		start.links.Add (verletLink);
-		end.links.Add (verletLink);
+		if (newLink) {
+			GameObject link = Instantiate (verletLinkPrefab, links);
 
-		verletLinks.Add (verletLink);
+			VerletLink verletLink = link.GetComponent<VerletLink> ();
+			verletLink.pointA = start;
+			verletLink.pointB = end;
+			verletLink.initialDistance = end.transform.position - start.transform.position;
+			verletLink.drawThisLink = draw;
+
+			start.links.Add (verletLink);
+			end.links.Add (verletLink);
+
+			verletLinks.Add (verletLink);
+		}
+	}
+
+	void AddLawOfCosinesLink(VerletPoint point) {
+		//Debug.Log ("Added cosines link for point: " + point.name);
+		if (point.links.Count == 2) {
+			VerletPoint neighbor1 = point.links [0].GiveNeighbor (point);
+			//Debug.Log ("Neighbor of " + point.name + " is " + neighbor1.name);
+			VerletPoint neighbor2 = point.links [1].GiveNeighbor (point);
+			//Debug.Log ("Neighbor of " + point.name + " is " + neighbor2.name);
+
+			AddVerletLink (neighbor1, neighbor2, false);
+			/*GameObject link = Instantiate (verletLinkPrefab, links);
+
+			VerletLink verletLink = link.GetComponent<VerletLink> ();
+			verletLink.pointA = neighbor1;
+			verletLink.pointB = neighbor2;
+			verletLink.initialDistance = neighbor2.transform.position - neighbor1.transform.position;
+			verletLink.drawThisLink = false;
+
+			neighbor1.links.Add (verletLink);
+			neighbor2.links.Add (verletLink);
+
+			verletLinks.Add (verletLink);*/
+		}
 	}
 
 	void AddVerletLinks() {
@@ -308,6 +354,14 @@ public class Goat : Shootable {
 
 		AddVerletLink (verletPoints [3], verletPoints [2], false);
 		AddVerletLink (verletPoints [3], verletPoints [4], false);
+
+		for (int i = 0; i < verletPoints.Length; i++) {
+			for (int j = i+1; j < verletPoints.Length; j++) {
+				if (verletPoints [i].links.Count < 7 && verletPoints [j].links.Count < 7) {
+					AddVerletLink (verletPoints [i], verletPoints [j], false);
+				}
+			}
+		}
 	}
 
 	/*
