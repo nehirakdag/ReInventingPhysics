@@ -10,6 +10,12 @@ public class Goat : Shootable {
 	public GameObject verletPointPrefab;
 	public VerletPoint[] verletPoints;
 
+	public GameObject verletLinkPrefab;
+	public List<VerletLink> verletLinks = new List<VerletLink>();
+
+	public Transform points;
+	public Transform lines;
+
 	public Bounds boundingBox;
 
 	public float scaleSize = 0.1f;
@@ -17,7 +23,6 @@ public class Goat : Shootable {
 	// Use this for initialization
 	void Start () {
 		currentVelocity = new Vector2(speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
-		Debug.Log ("Starting Velocity = " + currentVelocity.ToString ());
 		transform.Rotate (new Vector3(0.0f, 0.0f, -1 * elevationAngle));
 		boundingBox = new Bounds ();
 		boundingBox.center = new Vector3 (-0.01f, 0.18f);
@@ -56,7 +61,7 @@ public class Goat : Shootable {
 			notMovingSince += Time.deltaTime;
 		}
 
-		ShowBoundingBox ();
+		//ShowBoundingBox ();
 	}
 
 	void SetGoatShapeVertices() {
@@ -248,12 +253,64 @@ public class Goat : Shootable {
 		Debug.DrawLine (v3FrontBottomLeft, v3BackBottomLeft, color);
 	}
 
-	/*
-	public GameObject verletLinePrefab;
-	public List<VerletLine> verletEdges = new List<VerletLine>();
+	void AddVerletLink(VerletPoint start, VerletPoint end, bool draw) {
+		GameObject line = Instantiate (verletLinkPrefab, lines);
 
-	public Transform points;
-	public Transform lines;
+		VerletLink verletLink = line.GetComponent<VerletLink> ();
+		verletLink.pointA = start;
+		verletLink.pointB = end;
+		verletLink.initialDistance = end.transform.position - start.transform.position;
+		verletLink.drawThisLink = draw;
+
+		start.links.Add (verletLink);
+		end.links.Add (verletLink);
+
+		verletLinks.Add (verletLink);
+	}
+
+	void AddVerletLinks() {
+		// Horn
+		AddVerletLink (verletPoints [0], verletPoints [1], true);
+		AddVerletLink (verletPoints [0], verletPoints [2], true);
+		AddVerletLink (verletPoints [1], verletPoints [20], true);
+		AddVerletLink (verletPoints [2], verletPoints [4], true);
+
+		// Face
+		AddVerletLink (verletPoints [4], verletPoints [5], true);
+		AddVerletLink (verletPoints [5], verletPoints [6], true);
+
+		AddVerletLink (verletPoints [6], verletPoints [7], true);
+		AddVerletLink (verletPoints [6], verletPoints [8], true);
+
+		AddVerletLink (verletPoints [7], verletPoints [8], true);
+		AddVerletLink (verletPoints [7], verletPoints [9], true);
+
+		// Bottom
+		AddVerletLink (verletPoints [9], verletPoints [10], true);
+
+		// Left Leg
+		AddVerletLink (verletPoints [10], verletPoints [11], true);
+		AddVerletLink (verletPoints [10], verletPoints [13], true);
+		AddVerletLink (verletPoints [11], verletPoints [12], true);
+
+		// Right Leg
+		AddVerletLink (verletPoints [13], verletPoints [14], true);
+		AddVerletLink (verletPoints [13], verletPoints [16], true);
+		AddVerletLink (verletPoints [14], verletPoints [15], true);
+
+		// Back & tail
+		AddVerletLink (verletPoints [16], verletPoints [17], true);
+		AddVerletLink (verletPoints [17], verletPoints [18], true);
+		AddVerletLink (verletPoints [17], verletPoints [19], true);
+
+		AddVerletLink (verletPoints [18], verletPoints [19], true);
+		AddVerletLink (verletPoints [19], verletPoints [20], true);
+
+		AddVerletLink (verletPoints [3], verletPoints [2], false);
+		AddVerletLink (verletPoints [3], verletPoints [4], false);
+	}
+
+	/*
 
 	public int numVertices = 21;
 	public float scaleSize = 1.0f;
