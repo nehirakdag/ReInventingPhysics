@@ -8,6 +8,9 @@ public class GameManager : MonoBehaviour {
 	public Vector2 minBounds;
 	public Vector2 maxBounds;
 
+	public Vector2 mountainMinBounds;
+	public Vector2 mountainMaxBounds;
+
 	public Cannon leftCannon;
 	public Cannon rightCannon;
 
@@ -43,6 +46,7 @@ public class GameManager : MonoBehaviour {
 			timer = 0.0f;
 		}
 
+		// Check for cannonballs' collisions with the mountain
 		foreach (Shootable shot in leftCannon.shotsFired) {
 			Vector3[] verticesA = mountain.GetComponent<MeshFilter> ().mesh.vertices;
 			Vector2[] verticesB = new Vector2[shot.GetComponent<SpriteRenderer> ().sprite.vertices.Length];
@@ -65,31 +69,73 @@ public class GameManager : MonoBehaviour {
 			}
 		}
 
-		/*foreach (Shootable shot in rightCannon.shotsFired) {
+		// Check for goats' collisions with the mountain
+		foreach (Shootable shot in rightCannon.shotsFired) {
 			Vector3[] verticesA = mountain.GetComponent<MeshFilter> ().mesh.vertices;
 			Vector2[] verticesB = new Vector2[shot.GetComponent<Goat>().vertices.Length];
 
 			bool intersection = false;
-			for (int i = 0; i < shot.GetComponent<Goat>().vertices.Length; i++) {
-				verticesB [i] = new Vector2 (shot.GetComponent<Goat>().vertices[i].x, shot.GetComponent<Goat>().vertices[i].y);
+			for (int i = 0; i < shot.GetComponent<Goat>().verletPoints.Length; i++) {
+				verticesB [i] = new Vector2 (shot.GetComponent<Goat>().verletPoints[i].transform.position.x, shot.GetComponent<Goat>().verletPoints[i].transform.position.y);
 
-				if (shot.GetComponent<Goat> ().boundingBox.Contains (verticesB [i])) {
+				if (mountainMinBounds.x < verticesB[i].x && mountainMinBounds.y < verticesB[i].y && 
+					mountainMaxBounds.x > verticesB[i].x && mountainMaxBounds.y > verticesB[i].y) {
 					intersection = true;
 				}
 			}
 
-			if(intersection) {
+			if(intersection&& !shot.pinned) {
 				Simplex collisionSimplex = physics.DetectCollision (verticesA, verticesB);
 
 				if (collisionSimplex != null) {
 					collisionSimplex = physics.HandleCollision (verticesA, verticesB, collisionSimplex);
 
-					shot.transform.Translate(new Vector3(-1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.x, -1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.y, 0.0f));
-					shot.currentVelocity += (shot.bounciness * shot.currentVelocity.magnitude * collisionSimplex.collisionNormal.normalized);
+					//shot.transform.Translate(new Vector3(collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.x, -1.0f * collisionSimplex.penetratingDistance * shot.currentVelocity.normalized.y, 0.0f));
+					Vector3 shotVelocity = shot.GetComponent<Goat>().verletPoints[0].transform.position - shot.GetComponent<Goat>().verletPoints[0].oldPosition;
+					shot.transform.Translate(new Vector3(collisionSimplex.penetratingDistance * shotVelocity.normalized.x, -1.0f * collisionSimplex.penetratingDistance * shotVelocity.normalized.y, 0.0f));
+					shot.pinned = true;
+					//shot.currentVelocity += (shot.bounciness * shot.currentVelocity.magnitude * collisionSimplex.collisionNormal.normalized);
 
 				}
 			}
-		}*/
+		}
+
+		// Check for cannonballs' collisions with goats
+		for(int index = 0; index < leftCannon.shotsFired.Count; index++) {
+			Shootable cannonball = leftCannon.shotsFired[index];
+			if (cannonball.currentVelocity.magnitude > 0.1f) {
+				foreach (Shootable goat in rightCannon.shotsFired) {
+					if (goat.initialized) {
+						Vector3[] verticesA = new Vector3[cannonball.GetComponent<SpriteRenderer> ().sprite.vertices.Length];
+						Vector2[] verticesB = new Vector2[goat.GetComponent<Goat> ().vertices.Length];
+
+						for (int i = 0; i < verticesA.Length; i++) {
+							Vector2 spriteWorldPosition = cannonball.GetComponent<SpriteRenderer> ().transform.TransformPoint (cannonball.GetComponent<SpriteRenderer> ().sprite.vertices [i]);
+							verticesA [i] = new Vector3 (spriteWorldPosition.x, spriteWorldPosition.y, -0.1f);
+						}
+
+						for (int i = 0; i < goat.GetComponent<Goat> ().verletPoints.Length; i++) {
+							verticesB [i] = new Vector2 (goat.GetComponent<Goat> ().verletPoints [i].transform.position.x, goat.GetComponent<Goat> ().verletPoints [i].transform.position.y);
+						}
+
+						Simplex collisionSimplex = physics.DetectCollision (verticesA, verticesB);
+
+						if (collisionSimplex != null) {
+							goat.pinned = false;
+
+							for (int i = 0; i < goat.GetComponent<Goat> ().verletPoints.Length; i++) {
+								goat.GetComponent<Goat> ().verletPoints [i].ApplyForce (4.0f * cannonball.currentVelocity / Time.deltaTime);
+							}
+
+							leftCannon.shotsFired.Remove (cannonball);
+							Destroy (cannonball.gameObject);
+						}
+					}
+
+
+				}
+			}
+		}
 
 		if (Input.GetKeyDown (KeyCode.Tab)) {
 			if (leftCannon.isActive) {

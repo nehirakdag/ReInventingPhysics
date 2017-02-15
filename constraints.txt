@@ -1,0 +1,4 @@
+Constraints added:
+
+- Law of Cosines: If a vertex has exactly two neighbors linked to it, connect them as well in order to ensure proper shape
+- Populate all vertices so that they have at least 7 other links to other vertices (there are 21 vertices in total for my shape. By trial and error, it seems that connecting each vertex to its nearby neighbors and 1/3rd of total number of vertices gives a reasonable result. I considered shape distortion and performance when making this decision of 7 links)

@@ -24,8 +24,6 @@ public class Goat : Shootable {
 	private float TimeRemainder = 0f;
 	private float SubstepTime = 0.02f;
 
-	private bool pinned = false;
-
 	// Use this for initialization
 	void Start () {
 		currentVelocity = new Vector2(-1.0f * speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
@@ -46,6 +44,8 @@ public class Goat : Shootable {
 		for (int i = 0; i < 8; i++) {
 			verletPoints [i].ApplyForce (currentVelocity / Time.deltaTime);
 		}
+
+		initialized = true;
 	}
 
 	// Update is called once per frame
