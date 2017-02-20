@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Movement : MonoBehaviour {
+// Static utility class to look up certain physics calculations and constants
+public static class Movement {
 
 	public static Vector2 GRAVITY_VECTOR = new Vector3(0.0f, -9.81f);
 	public static float GRAVITY = -9.81f;

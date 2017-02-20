@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Class that is an abstraction of a polygon edge.
+// Used to compute collisions following EPA algorithm
 public class PolygonEdge {
 
 	public Vector2 edge;

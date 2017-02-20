@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class Cannonball : Shootable {
 
-	private float bouncinessOfCannonball = 0.90f;
+	// Set bounciness to 70%
+	private float bouncinessOfCannonball = 0.70f;
 
 	public override void Start() {
 		bounciness = bouncinessOfCannonball;
@@ -16,12 +17,17 @@ public class Cannonball : Shootable {
 	public override void Update () {
 		Vector2 newVelocity = currentVelocity;
 
+		// At each frame, calculate the drag force depending on the current initial velocity,
+		// add the gravity and the wind forces to find the acceleration, 
+		// multiply the final force by time to find the change in velocity
 		if (movingAtY) {
 			Vector2 drag = newVelocity.normalized * -0.5f * Movement.AIR_DENSITY * Movement.CrossSectionalArea (radius) * newVelocity.magnitude * newVelocity.magnitude;
 			newVelocity += (drag + Movement.GRAVITY_VECTOR + windForce) * Time.deltaTime;
 
+			// Stop moving if you reach the ground plane
 			if (transform.position.y <= -3.5f) {
 				movingAtY = false;
+				notMovingSince = 2.0f;
 			}
 		} else {
 			newVelocity.x = 0;

@@ -16,8 +16,6 @@ public class Goat : Shootable {
 	public Transform points;
 	public Transform links;
 
-	public Bounds boundingBox;
-
 	public float scaleSize = 0.1f;
 
 	private const int numIterations = 12;
@@ -28,19 +26,17 @@ public class Goat : Shootable {
 	void Start () {
 		currentVelocity = new Vector2(-1.0f * speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
 		transform.Rotate (new Vector3(0.0f, 0.0f, -1.0f * elevationAngle));
-		boundingBox = new Bounds ();
-		boundingBox.center = new Vector3 (-0.01f, 0.18f);
-		boundingBox.extents = new Vector3 (0.4f, 0.3f);
 		transform.Translate (new Vector3 (0.0f, 0.0f, -0.6f));
 
 		vertices = new Vector3[numVertices];
 		verletPoints = new VerletPoint[numVertices];
 
+		// Draw the verlet shape and create the connections
 		SetGoatShapeVertices ();
 		SetGoatVerletPoints ();
-		//AddConnectionLines ();
 		AddVerletLinks();
 
+		// Give initial velocity to 8 vertices (head area)
 		for (int i = 0; i < 8; i++) {
 			verletPoints [i].ApplyForce (currentVelocity / Time.deltaTime);
 		}
@@ -50,9 +46,9 @@ public class Goat : Shootable {
 
 	// Update is called once per frame
 	void Update () {
-		float UseSubstep = Mathf.Max(SubstepTime, 0.005f);
+		//float UseSubstep = Mathf.Max(SubstepTime, 0.005f);
 
-		TimeRemainder += Time.deltaTime;
+		//TimeRemainder += Time.deltaTime;
 		//while (TimeRemainder > UseSubstep) {
 		if (!pinned) {
 			for (int i = 0; i < verletPoints.Length; i++) {
@@ -71,11 +67,10 @@ public class Goat : Shootable {
 				}
 			}
 		}
-		TimeRemainder -= UseSubstep;
-		//}
-		//ShowBoundingBox ();
+		//TimeRemainder -= UseSubstep;
 	}
 
+	// Method to compute the vertex locatins for the Vector3 array that give a goat shape
 	void SetGoatShapeVertices() {
 		// Horn
 		vertices [0] = new Vector3 (-2.0f, 8.0f) * scaleSize + this.transform.position; // connect to [1], [2]
@@ -115,65 +110,19 @@ public class Goat : Shootable {
 
 		vertices [20] = new Vector3(-1.0f, 6.0f) * scaleSize + this.transform.position; // connect to [1], [19]
 	}
-		
-	void AddConnectionLines() {
-		if (vertices.Length > 20) {
-			// Horn
-			Debug.DrawLine (vertices [0], vertices [1], Color.black);
-			Debug.DrawLine (vertices [0], vertices [2], Color.black);
-			Debug.DrawLine (vertices [1], vertices [20], Color.black);
-			Debug.DrawLine (vertices [2], vertices [4], Color.black);
 
-			// Face
-			Debug.DrawLine (vertices [4], vertices [5], Color.black);
-			Debug.DrawLine (vertices [5], vertices [6], Color.black);
-
-			Debug.DrawLine (vertices [6], vertices [7], Color.black);
-			Debug.DrawLine (vertices [6], vertices [8], Color.black);
-
-			Debug.DrawLine (vertices [7], vertices [8], Color.black);
-			Debug.DrawLine (vertices [7], vertices [9], Color.black);
-
-			// Bottom
-			Debug.DrawLine (vertices [9], vertices [10], Color.black);
-
-			// Left leg
-			Debug.DrawLine (vertices [10], vertices [11], Color.black);
-			Debug.DrawLine (vertices [10], vertices [13], Color.black);
-			Debug.DrawLine (vertices [11], vertices [12], Color.black);
-
-			// Right leg
-			Debug.DrawLine (vertices [13], vertices [14], Color.black);
-			Debug.DrawLine (vertices [13], vertices [16], Color.black);
-			Debug.DrawLine (vertices [14], vertices [15], Color.black);
-
-			// Back & tail
-			Debug.DrawLine (vertices [16], vertices [17], Color.black);
-			Debug.DrawLine (vertices [17], vertices [18], Color.black);
-			Debug.DrawLine (vertices [17], vertices [19], Color.black);
-
-			Debug.DrawLine (vertices [18], vertices [19], Color.black);
-			Debug.DrawLine (vertices [19], vertices [20], Color.black);
-		}
-	}
-
-	/*void OnDrawGizmos() {
-		Gizmos.color = Color.black;
-		for (int i = 0; i < vertices.Length; i++) {
-			Gizmos.DrawSphere (vertices [i], 0.035f);
-		}
-		//AddConnectionLines ();
-	}*/
-
+	// Helper Function to add a verlet point at the given Vector3 location, setting the index index at the array
 	void AddVerletPoint(Vector3 location, int index) {
 		if (verletPoints [index] == null) {
 			GameObject vertex = Instantiate (verletPointPrefab, points);
 
+			// Create a verlet point object at the specified location
 			VerletPoint verletPoint = vertex.GetComponent<VerletPoint> ();
 			verletPoint.transform.position = location * scaleSize + this.transform.position;
 			verletPoint.oldPosition = location * scaleSize + this.transform.position;
 			verletPoint.gameObject.name = "Verlet Point " + index;
 
+			// Legs are sticky (not used after prof said goats can stick to the mountain at any colliding vertex)
 			if (index == 11 || index == 12 || index == 13 || index == 14) {
 				verletPoint.isSticky = true;
 			}
@@ -185,6 +134,7 @@ public class Goat : Shootable {
 
 	}
 
+	// Method to compute the vertex locatins for the VerletPoint array that give a goat shape
 	void SetGoatVerletPoints() {
 		// Horn
 		AddVerletPoint(new Vector3 (-2.0f, 8.0f), 0);
@@ -225,49 +175,12 @@ public class Goat : Shootable {
 		AddVerletPoint (new Vector3 (-1.0f, 6.0f), 20);
 	}
 
-
-	void ShowBoundingBox(){
-		Vector3 v3Center = boundingBox.center;
-		Vector3 v3Extents = boundingBox.extents;
-		Color color = Color.black;
-
-		Vector3 v3FrontTopLeft     = new Vector3(v3Center.x - v3Extents.x, v3Center.y + v3Extents.y, v3Center.z - v3Extents.z);  // Front top left corner
-		Vector3 v3FrontTopRight    = new Vector3(v3Center.x + v3Extents.x, v3Center.y + v3Extents.y, v3Center.z - v3Extents.z);  // Front top right corner
-		Vector3 v3FrontBottomLeft  = new Vector3(v3Center.x - v3Extents.x, v3Center.y - v3Extents.y, v3Center.z - v3Extents.z);  // Front bottom left corner
-		Vector3 v3FrontBottomRight = new Vector3(v3Center.x + v3Extents.x, v3Center.y - v3Extents.y, v3Center.z - v3Extents.z);  // Front bottom right corner
-		Vector3 v3BackTopLeft      = new Vector3(v3Center.x - v3Extents.x, v3Center.y + v3Extents.y, v3Center.z + v3Extents.z);  // Back top left corner
-		Vector3 v3BackTopRight        = new Vector3(v3Center.x + v3Extents.x, v3Center.y + v3Extents.y, v3Center.z + v3Extents.z);  // Back top right corner
-		Vector3 v3BackBottomLeft   = new Vector3(v3Center.x - v3Extents.x, v3Center.y - v3Extents.y, v3Center.z + v3Extents.z);  // Back bottom left corner
-		Vector3 v3BackBottomRight  = new Vector3(v3Center.x + v3Extents.x, v3Center.y - v3Extents.y, v3Center.z + v3Extents.z);  // Back bottom right corner
-
-		v3FrontTopLeft     = transform.TransformPoint(v3FrontTopLeft);
-		v3FrontTopRight    = transform.TransformPoint(v3FrontTopRight);
-		v3FrontBottomLeft  = transform.TransformPoint(v3FrontBottomLeft);
-		v3FrontBottomRight = transform.TransformPoint(v3FrontBottomRight);
-		v3BackTopLeft      = transform.TransformPoint(v3BackTopLeft);
-		v3BackTopRight     = transform.TransformPoint(v3BackTopRight);
-		v3BackBottomLeft   = transform.TransformPoint(v3BackBottomLeft);
-		v3BackBottomRight  = transform.TransformPoint(v3BackBottomRight);    
-
-		Debug.DrawLine (v3FrontTopLeft, v3FrontTopRight, color);
-		Debug.DrawLine (v3FrontTopRight, v3FrontBottomRight, color);
-		Debug.DrawLine (v3FrontBottomRight, v3FrontBottomLeft, color);
-		Debug.DrawLine (v3FrontBottomLeft, v3FrontTopLeft, color);
-
-		Debug.DrawLine (v3BackTopLeft, v3BackTopRight, color);
-		Debug.DrawLine (v3BackTopRight, v3BackBottomRight, color);
-		Debug.DrawLine (v3BackBottomRight, v3BackBottomLeft, color);
-		Debug.DrawLine (v3BackBottomLeft, v3BackTopLeft, color);
-
-		Debug.DrawLine (v3FrontTopLeft, v3BackTopLeft, color);
-		Debug.DrawLine (v3FrontTopRight, v3BackTopRight, color);
-		Debug.DrawLine (v3FrontBottomRight, v3BackBottomRight, color);
-		Debug.DrawLine (v3FrontBottomLeft, v3BackBottomLeft, color);
-	}
-
+	// Method to add a verlet link between two VerletPoint objects.
+	// Can be set drawable or not.
 	void AddVerletLink(VerletPoint start, VerletPoint end, bool draw) {
 		bool newLink = true;
 
+		// Check to make sure no duplicate links
 		foreach(VerletLink link in start.links) {
 			if ((link.pointA == start && link.pointB == end) || (link.pointA == end && link.pointB == start)) {
 				newLink = false;
@@ -277,6 +190,7 @@ public class Goat : Shootable {
 		if (newLink) {
 			GameObject link = Instantiate (verletLinkPrefab, links);
 
+			// Set appropriate properties of the link and add it to both points' list of links
 			VerletLink verletLink = link.GetComponent<VerletLink> ();
 			verletLink.pointA = start;
 			verletLink.pointB = end;
@@ -290,30 +204,17 @@ public class Goat : Shootable {
 		}
 	}
 
+	// Law of cosines link: If a verlet point is connected to 2 other points, then those 2 points must also
+	// preserve their initial distance
 	void AddLawOfCosinesLink(VerletPoint point) {
-		//Debug.Log ("Added cosines link for point: " + point.name);
 		if (point.links.Count == 2) {
 			VerletPoint neighbor1 = point.links [0].GiveNeighbor (point);
-			//Debug.Log ("Neighbor of " + point.name + " is " + neighbor1.name);
 			VerletPoint neighbor2 = point.links [1].GiveNeighbor (point);
-			//Debug.Log ("Neighbor of " + point.name + " is " + neighbor2.name);
-
 			AddVerletLink (neighbor1, neighbor2, false);
-			/*GameObject link = Instantiate (verletLinkPrefab, links);
-
-			VerletLink verletLink = link.GetComponent<VerletLink> ();
-			verletLink.pointA = neighbor1;
-			verletLink.pointB = neighbor2;
-			verletLink.initialDistance = neighbor2.transform.position - neighbor1.transform.position;
-			verletLink.drawThisLink = false;
-
-			neighbor1.links.Add (verletLink);
-			neighbor2.links.Add (verletLink);
-
-			verletLinks.Add (verletLink);*/
 		}
 	}
 
+	// Method to add appropriate Verlet links to ensure goat shape is drawn
 	void AddVerletLinks() {
 		// Horn
 		AddVerletLink (verletPoints [0], verletPoints [1], true);
@@ -352,9 +253,11 @@ public class Goat : Shootable {
 		AddVerletLink (verletPoints [18], verletPoints [19], true);
 		AddVerletLink (verletPoints [19], verletPoints [20], true);
 
+		// Eye (must be invisible links)
 		AddVerletLink (verletPoints [3], verletPoints [2], false);
 		AddVerletLink (verletPoints [3], verletPoints [4], false);
 
+		// Extra links drawn to ensure the shape is not grossly distorted
 		for (int i = 0; i < verletPoints.Length; i++) {
 			for (int j = i+1; j < verletPoints.Length; j++) {
 				if (verletPoints [i].links.Count < 7 && verletPoints [j].links.Count < 7) {
@@ -364,123 +267,4 @@ public class Goat : Shootable {
 		}
 	}
 
-	/*
-
-	public int numVertices = 21;
-	public float scaleSize = 1.0f;
-
-	void Start () {
-		currentVelocity = new Vector2(speed * Mathf.Cos(elevationAngle * Mathf.Deg2Rad), speed * Mathf.Sin(elevationAngle * Mathf.Deg2Rad));
-		transform.Rotate (new Vector3(0.0f, 0.0f, -1 * elevationAngle));
-
-		transform.Translate (new Vector3 (0.0f, 0.0f, -0.6f));
-
-		SetGoatVerletPoints ();
-		AddVerletLines ();
-		initialized = true;
-	}
-
-	void AddVerletPoint(Vector3 location, int index) {
-		GameObject vertex = Instantiate(verletPointPrefab, points);
-
-		VerletPoint verletPoint = vertex.GetComponent<VerletPoint> ();
-		verletPoint.location = location * scaleSize + this.transform.position;
-		verletPoint.gameObject.name = "Verlet Point " + index;
-
-		vertices [index] = verletPoint;
-	}
-
-	void SetGoatVerletPoints() {
-		vertices = new VerletPoint[numVertices];
-
-		// Horn
-		AddVerletPoint(new Vector3 (-2.0f, 8.0f), 0);
-		AddVerletPoint(new Vector3 (-3.0f, 7.0f), 1);
-		AddVerletPoint(new Vector3 (-4.0f, 7.0f), 2);
-
-		// Eye
-		AddVerletPoint(new Vector3 (-5.0f, 5.5f), 3);
-
-		// Face
-		AddVerletPoint(new Vector3 (-7.0f, 5.0f), 4);
-		AddVerletPoint(new Vector3 (-7.0f, 3.0f), 5);
-		AddVerletPoint(new Vector3 (-6.0f, 3.5f), 6);
-		AddVerletPoint(new Vector3 (-5.0f, 4.0f), 7);
-
-		// Horn
-		AddVerletPoint(new Vector3 (-5.5f, 2.0f), 8);
-
-		// Bottom
-		AddVerletPoint(new Vector3 (-4.0f, 4.0f), 9);
-
-		// Left Leg
-		AddVerletPoint(new Vector3 (2.0f, 2.0f), 10);
-		AddVerletPoint(new Vector3 (2.0f, -1.0f), 11);
-		AddVerletPoint(new Vector3 (2.0f, -2.5f), 12);
-
-		// Right Leg
-		AddVerletPoint(new Vector3 (5.5f, 1.0f), 13);
-		AddVerletPoint(new Vector3 (5.5f, -2.0f), 14);
-		AddVerletPoint(new Vector3 (5.5f, -3.5f), 15);
-
-		// Back & tail
-		AddVerletPoint(new Vector3 (7.0f, 1.5f), 16);
-		AddVerletPoint(new Vector3 (7.0f, 5.0f), 17);
-		AddVerletPoint(new Vector3 (8.9f, 7.0f), 18);
-		AddVerletPoint(new Vector3 (6.0f, 6.0f), 19);
-
-		AddVerletPoint (new Vector3 (-1.0f, 6.0f), 20);
-	}
-
-	void AddVerletLine(VerletPoint start, VerletPoint end) {
-		GameObject line = Instantiate (verletLinePrefab, lines);
-
-		VerletLine verletLine = line.GetComponent<VerletLine> ();
-		verletLine.startPoint = start;
-		verletLine.endPoint = end;
-		verletLine.totalLength = (end.location - start.location).magnitude;
-		verletLine.numSegments = ((int)verletLine.totalLength * 10 > 0) ? (int)verletLine.totalLength * 10 : 2;
-		verletLine.gameObject.name = "Verlet Line " + verletEdges.Count;
-
-		verletEdges.Add (verletLine);
-	}
-
-	void AddVerletLines() {
-		// Horn
-		AddVerletLine (vertices [0], vertices [1]);
-		AddVerletLine (vertices [0], vertices [2]);
-		AddVerletLine (vertices [1], vertices [20]);
-		AddVerletLine (vertices [2], vertices [4]);
-
-		// Face
-		AddVerletLine (vertices [4], vertices [5]);
-		AddVerletLine (vertices [5], vertices [6]);
-
-		AddVerletLine (vertices [6], vertices [7]);
-		AddVerletLine (vertices [6], vertices [8]);
-
-		AddVerletLine (vertices [7], vertices [8]);
-		AddVerletLine (vertices [7], vertices [9]);
-
-		// Bottom
-		AddVerletLine (vertices [9], vertices [10]);
-
-		// Left Leg
-		AddVerletLine (vertices [10], vertices [11]);
-		AddVerletLine (vertices [10], vertices [13]);
-		AddVerletLine (vertices [11], vertices [12]);
-
-		// Right Leg
-		AddVerletLine (vertices [13], vertices [14]);
-		AddVerletLine (vertices [13], vertices [16]);
-		AddVerletLine (vertices [14], vertices [15]);
-
-		// Back & tail
-		AddVerletLine (vertices [16], vertices [17]);
-		AddVerletLine (vertices [17], vertices [18]);
-		AddVerletLine (vertices [17], vertices [19]);
-
-		AddVerletLine (vertices [18], vertices [19]);
-		AddVerletLine (vertices [19], vertices [20]);
-	}*/
 }

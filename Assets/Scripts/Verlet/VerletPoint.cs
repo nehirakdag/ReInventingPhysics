@@ -25,9 +25,10 @@ public class VerletPoint : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		//transform.position = location;
+	
 	}
 
+	// Resolve the applied force onto this verlet point
 	public void UpdatePhysics(Vector3 forceToApply, float deltaTime) {
 		ApplyForce (forceToApply);
 
@@ -41,6 +42,7 @@ public class VerletPoint : MonoBehaviour {
 		acceleration = Vector3.zero;
 	}
 
+	// Verlet points are drawn to show shape presence
 	void OnDrawGizmos() {
 		Gizmos.color = Color.black;
 		Gizmos.DrawSphere (transform.position, radius);
@@ -52,21 +54,20 @@ public class VerletPoint : MonoBehaviour {
 		}
 	}
 
+	// Solve constraints given by the links in the list of verlet links this point has
 	public void SolveConstraints() {
 		foreach (VerletLink link in links) {
 			link.SolveLinkConstraint ();
 		}
 
-		//if (transform.position.y <= -5.0f) {
-		//	PinTo (transform.position);
-		//}
-
+		// if point is pinned, do not move it
 		if (pinned) {
 			transform.position = pin;
 			oldPosition = pin;
 		}
 	}
 
+	// Apply force to this verlet point
 	public void ApplyForce(Vector3 force) {
 		acceleration += force / mass;
 	}

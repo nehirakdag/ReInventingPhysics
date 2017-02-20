@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Class that serves as an abstraction of the polygon
+// that we build around the Minkowski Diference.
+// Maintains a list of points that are the vertices of the
+// polygon. We are mainly interested to check if the
+// polygon enclosed by these points contain the origin or not.
 public class Simplex {
 
-	public List<Vector3> simplex;
 	public List<Vector2> simplex2D;
 
 	public float penetratingDistance;
@@ -13,18 +17,17 @@ public class Simplex {
 	public int winding;
 
 	public Simplex() {
-		simplex = new List<Vector3> ();
 		simplex2D= new List<Vector2> ();
 	}
 
-	public bool ContainsOrigin() {
-		return false;
-	}
-
+	// Method for 2D points to check if the simplex contains the origin.
+	// If it does, we know that we have a collision
 	public bool ContainsOrigin2D(ref Vector2 distance) {
+		// Get the last point in the simplex list
 		Vector2 A = simplex2D [simplex2D.Count - 1];
 		Vector2 A0 = -1.0f * A;
 
+		// If we have a triangle, get the other 2 points B and C
 		if (simplex2D.Count == 3) {
 			Vector2 B = simplex2D [0];
 			Vector2 C = simplex2D [1];
@@ -32,17 +35,23 @@ public class Simplex {
 			Vector2 AB = B - A;
 			Vector2 AC = C - A;
 
+			// set the checked distance vector to be perpendicular to AB
 			distance = new Vector3 (-AB.y, AB.x, -0.1f);
 
+			// Verify if we are going at the right direction by comparing it with the third.
+			// If not, reverse the direction of the vector
 			if (Vector2.Dot (distance, C) > 0.0f) {
 				distance *= -1.0f;
 			}
 
+			// If we are in the same direction with the origin then C is the furthest vector
+			// among the given three that we have. So we can remove it
 			if (Vector2.Dot (distance, A0) > 0.0f) {
 				simplex2D.Remove (C);
 				return false;
 			}
 
+			// Repeat the same process for AC with B being the third vector
 			distance = new Vector3 (-AC.y, AC.x, -0.1f);
 
 			if (Vector2.Dot (distance, B) > 0.0f) {
@@ -54,8 +63,11 @@ public class Simplex {
 				return false;
 			}
 
+			// Then origin must be inside the area covered by the triangle simplex
 			return true;
 		} else {
+			// If we have a line, simplex can not be containing the origin. We must 
+			// edit the reference vector if necessary
 			Vector2 B = simplex2D [0];
 			Vector2 AB = B - A;
 
@@ -66,82 +78,6 @@ public class Simplex {
 			}
 		}
 
-		return false;
-	}
-
-	public bool containsOrigin(ref Vector2  d)
-	{
-		// get the last point added to the simplex
-		Vector2 a = simplex2D[simplex2D.Count -1];
-		// compute AO (same thing as -A)
-		Vector2 ao = new Vector2(-a.x, -a.y);
-
-		//triangle  ABC
-		if (simplex2D.Count == 3)
-		{
-
-			// get b and c
-			Vector2 b = simplex2D[1];
-			Vector2 c = simplex2D[0];
-
-			Vector2 ab = b - a;
-			Vector2 ac = c - a;
-
-			//direction perpendicular to AB
-			d=new Vector2(-ab.y,ab.x);
-			//away from C
-			if(Vector2.Dot(d,c)>0)// if same direction, make d opposite
-			{
-				d = d * -1.0f;
-			}
-
-			//If the new vector (d) perpenicular on AB is in the same direction with the origin (A0)
-			//it means that C is the furthest from origin and remove to create a new simplex
-			if(Vector2.Dot(d,ao)>0)//same direction
-			{
-				simplex2D.Remove(c);
-				return false;
-			}
-
-			//direction to be perpendicular to AC
-			d = new Vector2(-ac.y, ac.x);
-
-			//away form B
-			if(Vector2.Dot(d, b) >0)
-			{
-				d = d * -1.0f;
-			}
-
-			//If the new vector (d) perpenicular on AC edge, is in the same direction with the origin (A0)
-			//it means that B is the furthest from origin and remove to create a new simplex
-
-			if(Vector2.Dot(d, ao) > 0)
-			{
-				simplex2D.Remove(b);
-				return false;
-			}
-
-			//origin must be inside the triangle, so this is the simplex
-			return true;
-		}
-
-		//line
-		else
-		{
-			// then its the line segment case
-			Vector2 b = simplex2D[0];
-			// compute AB
-			Vector2 ab = b - a;
-
-			//direction perpendicular to ab, to orgin: ABXAOXAB
-			d = new Vector2(-ab.y, ab.x);
-			if(Vector2.Dot(d, ao)<0)
-			{
-				d = d * -1.0f;
-			}
-
-
-		}
 		return false;
 	}
 }
