@@ -93,6 +93,7 @@ public class MountainGenerator : MonoBehaviour {
 
 		// Reduce the subset to deal with to the new value now that the current iteration is done
 		int numSubsetVertices = numTotalVertices - (int)Mathf.Pow (2.0f, (float)numIterations);
+		// Recursively create the mesh for the two halves that were created
 		MidpointDisplacementIteration (numIterations - 1, numSubsetVertices, triangles.Length / 2, 0, 1);
 		MidpointDisplacementIteration (numIterations - 1, numSubsetVertices, triangles.Length / 2, triangles.Length / 2, numTotalVertices / 2);
 
@@ -106,9 +107,10 @@ public class MountainGenerator : MonoBehaviour {
 	// Recursive function that iterates until the number of iterations are zero,
 	// Performing the same operation of dividing the midpoints, adding triangles with random
 	// lengths until the desired iteration number is reached
-	void MidpointDisplacementIteration(int numIterations, int numSubsetVertices, int halfTriangleCount, int triangleIndex, int indexA) {
+	void MidpointDisplacementIteration(int numIterations, int numSubsetVertices, int triangleSubsetHalfLength, int triangleIndex, int indexA) {
 		// The two sides of the triangle have as many as the last iteration's index number of vertices between them.
-		int indexB = indexA + (int)Mathf.Pow (2.0f, numIterations + 1);
+		int twoToN = (int)Mathf.Pow (2.0f, numIterations);
+		int indexB = indexA + twoToN * 2;
 
 		// Our vertices orientations will differ depending on which
 		// side of the slope we are at, so we must account for this
@@ -152,17 +154,18 @@ public class MountainGenerator : MonoBehaviour {
 			normal *= -1.0f;
 		}
 
+		// Calculate the new midpoint's location and set t
 		Vector3 deltaMidpoint = normal / (Vector3.Distance (vertices [indexA], vertices [indexB]) * smoothingFactor);
 		midpoint += deltaMidpoint;
-		vertices [indexA + (int)Mathf.Pow (2.0f, numIterations)] = midpoint;
+		vertices [indexA + twoToN] = midpoint;
 
 		// repeat this opeation until the desired number of iterations is reached
 		if (numIterations != 0) {
 			// Reduce the subset to deal with to the new value now that the current iteration is done
-			int newSubsetVerticesCount = numSubsetVertices - (int)Mathf.Pow (2.0f, (float)numIterations);
-
-			MidpointDisplacementIteration (numIterations - 1, newSubsetVerticesCount, halfTriangleCount / 2, triangleIndex, indexA);
-			MidpointDisplacementIteration (numIterations - 1, newSubsetVerticesCount, halfTriangleCount / 2, triangleIndex + halfTriangleCount / 2, indexA + numSubsetVertices /2 - 1);
+			int newSubsetVerticesCount = numSubsetVertices - twoToN;
+			// Keep recursively dividing and re adjusting the mesh
+			MidpointDisplacementIteration (numIterations - 1, newSubsetVerticesCount, triangleSubsetHalfLength / 2, triangleIndex, indexA);
+			MidpointDisplacementIteration (numIterations - 1, newSubsetVerticesCount, triangleSubsetHalfLength / 2, triangleIndex + triangleSubsetHalfLength / 2, indexA + numSubsetVertices /2 - 1);
 		}
 	}
 }

@@ -19,8 +19,7 @@ public class Goat : Shootable {
 	public float scaleSize = 0.1f;
 
 	private const int numIterations = 12;
-	private float TimeRemainder = 0f;
-	private float SubstepTime = 0.02f;
+	private float pinnedSince = 0.0f;
 
 	// Use this for initialization
 	void Start () {
@@ -46,11 +45,13 @@ public class Goat : Shootable {
 
 	// Update is called once per frame
 	void Update () {
-		//float UseSubstep = Mathf.Max(SubstepTime, 0.005f);
+		if (pinned) {
+			pinnedSince += Time.deltaTime;
+		}
 
-		//TimeRemainder += Time.deltaTime;
-		//while (TimeRemainder > UseSubstep) {
 		if (!pinned) {
+			pinnedSince = 0.0f;
+
 			for (int i = 0; i < verletPoints.Length; i++) {
 				Vector2 drag = (verletPoints [i].transform.position - verletPoints [i].oldPosition).normalized * -0.5f * Movement.AIR_DENSITY * Movement.CrossSectionalArea (radius) * (verletPoints [i].transform.position - verletPoints [i].oldPosition).magnitude * (verletPoints [i].transform.position - verletPoints [i].oldPosition).magnitude;
 				Vector2 forceApplied = (drag + Movement.GRAVITY_VECTOR + windForce);
@@ -58,16 +59,17 @@ public class Goat : Shootable {
 			}
 		}
 
-		for (int i = 0; i < numIterations; i++) {
-			for (int j = 0; j < verletPoints.Length; j++) {
-				verletPoints [j].SolveConstraints ();
+		if (pinnedSince <= 1.0f) {
+			for (int i = 0; i < numIterations; i++) {
+				for (int j = 0; j < verletPoints.Length; j++) {
+					verletPoints [j].SolveConstraints ();
 
-				if (verletPoints [j].pinned) {
-					pinned = true;
+					if (verletPoints [j].pinned && !pinned) {
+						pinned = true;
+					}
 				}
 			}
 		}
-		//TimeRemainder -= UseSubstep;
 	}
 
 	// Method to compute the vertex locatins for the Vector3 array that give a goat shape

@@ -25,10 +25,14 @@ public class Cannonball : Shootable {
 			newVelocity += (drag + Movement.GRAVITY_VECTOR + windForce) * Time.deltaTime;
 
 			// Stop moving if you reach the ground plane
-			if (transform.position.y <= -3.5f) {
+			if (transform.position.y <= -3.5f || ((newVelocity * Time.deltaTime).magnitude <= 0.005f && newVelocity.x <= 0.01f && 
+				transform.position.x > -1.8f && transform.position.x < 1.8f && transform.position.y < 1.7f && transform.position.y > 0.9f)) {
 				movingAtY = false;
+			}
+			if (transform.position.y <= -3.5f) {
 				notMovingSince = 2.0f;
 			}
+
 		} else {
 			newVelocity.x = 0;
 			newVelocity.y = 0;

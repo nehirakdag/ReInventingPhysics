@@ -213,7 +213,7 @@ public class GameManager : MonoBehaviour {
 	void ApplyWind() {
 		currentWind = new Vector2(Movement.GetCurrentWindSpeed (windSpeedMax), 0.0f);
 
-		windSpeedArrow.localScale = Vector3.one * currentWind.x / windSpeedMax;
+		windSpeedArrow.localScale = (windSpeedMax == 0.0f) ? Vector3.zero : Vector3.one * currentWind.x / windSpeedMax;
 		windSpeedText.text = "Wind: " + currentWind.x;
 
 		SetWindForShootables (leftCannon);
